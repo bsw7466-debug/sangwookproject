@@ -343,7 +343,7 @@
       font-size: 13px;
     }
 
-    /* --- FARM CARDS --- */
+    /* --- FARM CARDS & SIGNAL BADGE --- */
     .farm-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -370,12 +370,34 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     .farm-name {
       font-size: 18px;
       font-weight: 800;
       color: var(--text-main);
+    }
+
+    /* 신호등 뱃지 스타일 */
+    .moisture-signal-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      transition: all 0.2s ease;
+    }
+
+    .moisture-signal-badge .signal-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ffffff;
     }
 
     .detail-toggle-btn {
@@ -704,7 +726,7 @@
 <header>
   <div class="wrap top">
     <div>
-      <h1>환경데이터 통합 관리시스템 CBT ver1.0 </h1>
+      <h1>환경데이터 통합 관리시스템 CBT ver1.1 </h1>
       <div id="subtitle" class="sub">@운영자 : 박상욱 · 농가별 최신 수분값 조회</div>
     </div>
     <div class="status-group">
@@ -852,6 +874,20 @@ const FARMS = [
     { key:"습도", sn:"22089017-2", type:"humidity" }
   ] }
 ];
+
+// 수분 상태 신호등 5단계 설정 함수
+function getMoistureSignal(rawVal) {
+  if (rawVal === null || rawVal === undefined || Number.isNaN(Number(rawVal))) {
+    return { text: "측정 대기", color: "#64748b" };
+  }
+  const pct = Number(rawVal) <= 1.5 ? Number(rawVal) * 100 : Number(rawVal);
+
+  if (pct < 14.0) return { text: "매우 건조", color: "#ef4444" };   // 빨간색
+  if (pct < 18.9) return { text: "건조", color: "#f97316" };        // 주황색
+  if (pct < 32.0) return { text: "적정", color: "#10b981" };        // 초록색
+  if (pct < 39.0) return { text: "다소 습함", color: "#eab308" };   // 노란색
+  return { text: "과습", color: "#a855f7" };                         // 보라색
+}
 
 function showToast(text) {
   const toast = $("toastMsg");
@@ -1046,6 +1082,11 @@ function buildFarmCards(){
             <div>
               <div class="farm-title-group">
                 <div class="farm-name">${displayName}</div>
+                <!-- 농가명 옆 5단계 신호등 UI 위치 -->
+                <div id="farm-${idx}-signal" class="moisture-signal-badge" style="background-color: #64748b;">
+                  <span class="signal-dot"></span>
+                  <span id="farm-${idx}-signal-text">측정 대기</span>
+                </div>
                 <button id="farm-${idx}-toggle-btn" class="detail-toggle-btn" onclick="toggleDailyDetail(${idx})">상세 ∨</button>
               </div>
               <div class="farm-meta">Logger ${farm.logger}</div>
@@ -1125,6 +1166,7 @@ function renderFarm(idx,farm,rows,period){
   const metricSensor = type => farm.sensors.find(s => s.type === type);
 
   let latestMoistureTs = null;
+  let latestMoistureValue = null;
   const allMoistureVals = [];
   const dailyMoistureMap = new Map();
 
@@ -1149,8 +1191,18 @@ function renderFarm(idx,farm,rows,period){
     if(el){ el.textContent = r ? fmt(r.value,r.unit,"moisture") : "—"; }
     if(r?.timestamp && (!latestMoistureTs || new Date(r.timestamp) > new Date(latestMoistureTs))){
       latestMoistureTs = r.timestamp;
+      latestMoistureValue = r.value;
     }
   });
+
+  // 농가명 옆 신호등 배지 갱신
+  const signalBadge = $("farm-" + idx + "-signal");
+  const signalText = $("farm-" + idx + "-signal-text");
+  if (signalBadge && signalText) {
+    const signalInfo = getMoistureSignal(latestMoistureValue);
+    signalBadge.style.backgroundColor = signalInfo.color;
+    signalText.textContent = signalInfo.text;
+  }
 
   const dailyListEl = $("farm-" + idx + "-daily-list");
   if (dailyListEl) {
