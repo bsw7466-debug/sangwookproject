@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Moisture Monitoring Process</title>
   <meta name="theme-color" content="#f1f5f9" />
+  
+  <!-- Vercel Analytics 트래픽 수집 스크립트 -->
+  <script defer src="/_vercel/insights/script.js"></script>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -792,7 +796,7 @@ const AUTH_KEYS = {
 };
 
 let currentRole = null;
-let activeFarms = []; // 정렬된 농가 목록 저장
+let activeFarms = [];
 
 const FARMS = [
   { id: "f1", name: "🌶️ 고추 - 영암 김명옥", region: "영암", crop: "🌶️ 고추", logger: "22125015", sensors: [
@@ -878,10 +882,8 @@ function updateRoleUI() {
   }
 }
 
-// 사용자 권한에 맞춘 농가 목록 및 정렬
 function getSortedFarms() {
   if (currentRole === "user") {
-    // 서희종(5531): '서희종2' 제외
     const seoFarms = FARMS.filter(f => f.name.includes("서희종") && !f.name.includes("서희종2"));
     const joFarm = FARMS.filter(f => f.name.includes("조장현"));
     const kimFarm = FARMS.filter(f => f.name.includes("김인광"));
@@ -889,27 +891,22 @@ function getSortedFarms() {
     
     return [...seoFarms, ...joFarm, ...kimFarm, ...otherFarms];
   } else if (currentRole === "guest") {
-    // 게스트(7466): 전체 농가 포함
     return [...FARMS];
   }
-  // 관리자(9507): 전체 농가 포함
   return [...FARMS];
 }
 
-// 가명 처리 로직
 function getDisplayName(farm, indexInActiveList) {
   if (currentRole === "admin") {
     return farm.name;
   }
 
-  // 게스트(7466): 모든 농가를 완전히 가명 처리 (예: 🌶️ 고추 - 무안1)
   if (currentRole === "guest") {
     const sameCategoryFarms = activeFarms.filter(f => f.crop === farm.crop && f.region === farm.region);
     const order = sameCategoryFarms.findIndex(f => f.id === farm.id) + 1;
     return `${farm.crop} - ${farm.region}${order}`;
   }
 
-  // 서희종(5531): 본인 농가만 실명 표시, 나머지는 비교/선도/평균 처리
   if (farm.name.includes("서희종")) return farm.name;
   if (farm.name.includes("조장현")) return "🌶️ 고추 - 신안 - 선도농가";
   if (farm.name.includes("김인광")) return "🌶️ 고추 - 신안 - 평균농가";
@@ -1408,7 +1405,6 @@ function toggleModal(show) {
   $("downloadModal").style.display = show ? "flex" : "none";
 }
 
-// --- AUTH LOGIC ---
 function checkAuth() {
   const savedKey = localStorage.getItem("moisture_auth_key");
   if (savedKey && AUTH_KEYS[savedKey]) {
@@ -1449,7 +1445,6 @@ function initApp() {
   loadAll();
 }
 
-// Event Listeners
 $("authBtn").addEventListener("click", handleAuthSubmit);
 $("authInput").addEventListener("keypress", (e) => {
   if (e.key === "Enter") handleAuthSubmit();
@@ -1466,10 +1461,8 @@ $("selectAllFarms").addEventListener("change", (e) => {
   document.querySelectorAll('.farm-check').forEach(cb => cb.checked = e.target.checked);
 });
 
-// App Start
 checkAuth();
 
-// 5분마다 자동 갱신
 setInterval(() => {
   if (currentRole) loadAll();
 }, 5 * 60 * 1000);
