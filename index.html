@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ko">
 <head>
@@ -1329,9 +1330,9 @@ function renderFarm(idx,farm,rows,period){
         const y20 = y.getPixelForValue(0.20);
         const y30 = y.getPixelForValue(0.30);
         ctx.save();
-        ctx.fillStyle = "rgba(239, 68, 68, 0.06)";
+        ctx.fillStyle = "rgba(16, 185, 129, 0.08)";
         ctx.fillRect(left, y30, right-left, y20-y30);
-        ctx.strokeStyle = "rgba(239, 68, 68, 0.3)";
+        ctx.strokeStyle = "rgba(16, 185, 129, 0.45)";
         ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
         [0.20, 0.30].forEach(v=>{
           const py = y.getPixelForValue(v);
