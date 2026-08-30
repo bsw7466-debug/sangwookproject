@@ -1388,7 +1388,7 @@ async function loadAll(){
   try { period = getSelectedPeriod(); } catch(err) { showError(err.message); return; }
 
   setStatus(`${activeFarms.length}농가 데이터 조회 중...`);
-  $("subtitle").textContent = `@APD : SANGWOOK PARK · ${period.label}`;
+  $("subtitle").textContent = `@운영자 : 박상욱 · ${period.label}`;
 
   const results = await Promise.allSettled(activeFarms.map(f => fetchFarm(f, API_TOKEN, period.start, period.end)));
   const errors=[];
