@@ -1,0 +1,23 @@
+{
+  "name": "sangwook-moisture-monitoring",
+  "version": "1.0.0",
+  "description": "Moisture Monitoring Process application with Vercel Web Analytics",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bsw7466-debug/sangwookproject.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bsw7466-debug/sangwookproject/issues"
+  },
+  "homepage": "https://github.com/bsw7466-debug/sangwookproject#readme",
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
+  }
+}
