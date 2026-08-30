@@ -904,7 +904,6 @@ function getDisplayName(farm, indexInActiveList) {
 
   // 게스트(7466): 모든 농가를 완전히 가명 처리 (예: 🌶️ 고추 - 무안1)
   if (currentRole === "guest") {
-    // 각 지역/작물별 번호 부여 계산
     const sameCategoryFarms = activeFarms.filter(f => f.crop === farm.crop && f.region === farm.region);
     const order = sameCategoryFarms.findIndex(f => f.id === farm.id) + 1;
     return `${farm.crop} - ${farm.region}${order}`;
