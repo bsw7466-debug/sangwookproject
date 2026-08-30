@@ -1,0 +1,1479 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Moisture Monitoring Process</title>
+  <meta name="theme-color" content="#f1f5f9" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+    :root {
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-sub: #64748b;
+      --border: #e2e8f0;
+      --primary: #0284c7;
+      --primary-bg: #f0f9ff;
+      --ok: #10b981;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --shadow-soft: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    }
+
+    * { box-sizing: border-box; font-family: "Pretendard", -apple-system, sans-serif; }
+
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding-bottom: 40px;
+    }
+
+    /* --- TOAST WELCOME BANNER --- */
+    .toast-msg {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      z-index: 3000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .toast-msg.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* --- AUTH OVERLAY --- */
+    .auth-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .auth-card {
+      background: #ffffff;
+      padding: 32px;
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      text-align: center;
+    }
+
+    .auth-card h2 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .auth-card p {
+      color: var(--text-sub);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    .auth-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px;
+      text-align: center;
+      letter-spacing: 2px;
+      outline: none;
+      margin-bottom: 12px;
+    }
+
+    .auth-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+
+    .auth-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .auth-btn:hover {
+      background: #0369a1;
+    }
+
+    .auth-error {
+      color: var(--bad);
+      font-size: 12px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* --- HEADER --- */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px 24px;
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .sub {
+      color: var(--text-sub);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .status-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-sub);
+      font-size: 13px;
+      font-weight: 600;
+      background: #ffffff;
+      padding: 8px 16px;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+
+    .role-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 50px;
+      background: #f0f9ff;
+      color: #0284c7;
+      border: 1px solid #bae6fd;
+    }
+
+    .role-badge.admin {
+      background: #fef2f2;
+      color: #ef4444;
+      border-color: #fecaca;
+    }
+
+    .role-badge.guest {
+      background: #f3f4f6;
+      color: #4b5563;
+      border-color: #d1d5db;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--warn);
+    }
+    .dot.ok { background: var(--ok); }
+    .dot.bad { background: var(--bad); }
+
+    .logout-btn {
+      padding: 8px 14px;
+      font-size: 12px;
+      border-radius: 50px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .logout-btn:hover {
+      background: #e2e8f0;
+      color: var(--text-main);
+    }
+
+    /* --- SETUP SECTION --- */
+    .setup {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-top: 20px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid #ffffff;
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) auto auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      color: var(--text-sub);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    input[type="date"] {
+      width: 100%;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--text-main);
+      padding: 10px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    #loadBtn {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+    }
+
+    #loadBtn:hover {
+      background: #0369a1;
+    }
+
+    #openModalBtn {
+      background: #10b981;
+      color: #ffffff;
+      border: none;
+    }
+
+    #openModalBtn:hover {
+      background: #059669;
+    }
+
+    .help {
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-top: 12px;
+    }
+
+    .errorbox {
+      display: none;
+      margin-bottom: 20px;
+      padding: 14px;
+      border-radius: var(--radius-md);
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      font-size: 13px;
+    }
+
+    /* --- FARM CARDS --- */
+    .farm-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    .farm-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid #ffffff;
+    }
+
+    .farm-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .farm-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .farm-name {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .detail-toggle-btn {
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 6px;
+      background: #f1f5f9;
+      color: #0284c7;
+      border: 1px solid #cbd5e1;
+      cursor: pointer;
+    }
+
+    .detail-toggle-btn:hover {
+      background: #e2e8f0;
+    }
+
+    .farm-meta {
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-top: 4px;
+    }
+
+    .farm-last {
+      font-size: 12px;
+      color: var(--text-sub);
+      text-align: right;
+      font-weight: 500;
+    }
+
+    /* --- DAILY AVERAGE PANEL --- */
+    .daily-avg-panel {
+      display: none;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 20px;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .daily-avg-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .daily-avg-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+
+    .daily-avg-item {
+      background: #ffffff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .daily-avg-date {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-sub);
+    }
+
+    .daily-avg-val {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    /* --- METRIC VALUES --- */
+    .values {
+      display: grid;
+      grid-template-columns: 1.4fr repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .value-card {
+      border-radius: var(--radius-md);
+      padding: 16px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+    }
+
+    .value-card.moisture-card {
+      background: var(--primary-bg);
+      border-color: #bae6fd;
+    }
+
+    .value-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .value-label {
+      font-size: 12px;
+      color: var(--text-sub);
+      font-weight: 700;
+    }
+
+    .metric-icon {
+      font-size: 16px;
+    }
+
+    .value {
+      font-size: 26px;
+      font-weight: 800;
+      margin-top: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .value-time {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 8px;
+    }
+
+    .moisture-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .moisture-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    .moisture-name {
+      color: var(--text-sub);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .moisture-value {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .period-stats {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed #bae6fd;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #0369a1;
+      font-weight: 600;
+    }
+
+    .period-stats span b {
+      font-weight: 800;
+    }
+
+    /* --- CHART --- */
+    .chartbox {
+      height: 350px;
+      border-top: 1px dashed var(--border);
+      padding-top: 20px;
+      position: relative;
+    }
+
+    .chart-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+    }
+
+    .chartbox canvas {
+      width: 100%!important;
+      height: 300px!important;
+    }
+
+    /* --- DOWNLOAD MODAL --- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-card {
+      background: #ffffff;
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 520px;
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: var(--text-sub);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .modal-section {
+      margin-bottom: 20px;
+    }
+
+    .modal-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-label input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 13px;
+      margin-top: 40px;
+    }
+
+    @media(max-width: 900px) {
+      .setup-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media(max-width: 768px) {
+      .wrap { padding: 12px; }
+      .farm-card { padding: 16px; }
+      .values { grid-template-columns: 1fr 1fr; }
+    }
+    @media(max-width: 480px) {
+      .setup-grid { grid-template-columns: 1fr; }
+      .values { grid-template-columns: 1fr; }
+      .checkbox-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOAST WELCOME BANNER -->
+<div id="toastMsg" class="toast-msg"></div>
+
+<!-- AUTH MODAL -->
+<div id="authOverlay" class="auth-overlay">
+  <div class="auth-card">
+    <h2>🔒 접속 인증</h2>
+    <p>인증키를 입력해 주세요.</p>
+    <input type="password" id="authInput" class="auth-input" placeholder="인증키 입력" maxlength="20" />
+    <button id="authBtn" class="auth-btn">확인</button>
+    <div id="authError" class="auth-error">인증키가 올바르지 않습니다.</div>
+  </div>
+</div>
+
+<header>
+  <div class="wrap top">
+    <div>
+      <h1>환경데이터 통합 관리시스템 BETA VERSION </h1>
+      <div id="subtitle" class="sub">@APD : SANGWOOK PARK · 농가별 최신 수분값 조회</div>
+    </div>
+    <div class="status-group">
+      <div class="status">
+        <span id="dot" class="dot"></span>
+        <span id="statusText">대기 중</span>
+      </div>
+      <!-- 권한 및 접속자 배지 -->
+      <div id="roleBadge" class="role-badge">
+        <span id="roleIcon">👤</span>
+        <span id="roleText">사용자</span>
+      </div>
+      <button id="logoutBtn" class="logout-btn">로그아웃</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="setup">
+    <div class="setup-grid">
+      <div>
+        <label for="startDate">시작일</label>
+        <input id="startDate" type="date" />
+      </div>
+      <div>
+        <label for="endDate">종료일</label>
+        <input id="endDate" type="date" />
+      </div>
+      <button id="loadBtn">기간 적용</button>
+      <button id="openModalBtn">📥 데이터 다운로드</button>
+    </div>
+    <div class="help">
+      * 시작일과 종료일을 변경한 후 [기간 적용]을 누르면 설정된 기간의 데이터가 갱신됩니다.
+    </div>
+  </section>
+
+  <div id="errorBox" class="errorbox"></div>
+  <section id="farmGrid" class="farm-grid"></section>
+</main>
+
+<div id="downloadModal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-title">맞춤 데이터 다운로드 (CSV)</div>
+      <button id="closeModalBtn" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">
+        <span>농가 선택</span>
+        <label class="checkbox-label" style="font-size:12px;">
+          <input type="checkbox" id="selectAllFarms" checked /> 전체 선택
+        </label>
+      </div>
+      <div id="farmCheckboxList" class="checkbox-grid"></div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">다운로드 항목 선택</div>
+      <div class="checkbox-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <label class="checkbox-label"><input type="checkbox" class="type-check" value="moisture" checked /> 💧 토양수분</label>
+        <label class="checkbox-label"><input type="checkbox" class="type-check" value="temperature" checked /> 🌡️ 온도</label>
+        <label class="checkbox-label"><input type="checkbox" class="type-check" value="humidity" checked /> 💦 습도</label>
+        <label class="checkbox-label"><input type="checkbox" class="type-check" value="solar" checked /> ☀️ 일사량</label>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button id="cancelModalBtn">취소</button>
+      <button id="execDownloadBtn" style="background:var(--primary); color:#fff; border:none;">CSV 다운로드</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Copyright © 박상욱 연구원. All rights reserved.
+<br> E-mail : bsw7466@jares.go.kr
+</footer>
+
+<script>
+const API = "https://api.licor.cloud/v1/data";
+const API_TOKEN = "2sjkSV0WDr6cy8CNnwl0UaeqtEMaF8x7GnaYLUQcb99eG75r";
+
+// 권한 정의 (관리자: 9507, 서희종: 5531, 게스트: 7466)
+const AUTH_KEYS = {
+  "9507": { role: "admin", name: "관리자" },
+  "5531": { role: "user", name: "서희종" },
+  "7466": { role: "guest", name: "게스트" }
+};
+
+let currentRole = null;
+let activeFarms = []; // 정렬된 농가 목록 저장
+
+const FARMS = [
+  { id: "f1", name: "🌶️ 고추 - 영암 김명옥", region: "영암", crop: "🌶️ 고추", logger: "22125015", sensors: [
+    { key:"수분", sn:"22054837-1", type:"moisture" },
+    { key:"일사량", sn:"21864023-1", type:"solar" },
+    { key:"온도", sn:"22034650-1", type:"temperature" },
+    { key:"습도", sn:"22034650-2", type:"humidity" }
+  ] },
+  { id: "f2", name: "🌶️ 고추 - 무안 박상길", region: "무안", crop: "🌶️ 고추", logger: "22130569", sensors: [
+    { key:"수분", sn:"22011531-1", type:"moisture" },
+    { key:"일사량", sn:"21864022-1", type:"solar" },
+    { key:"온도", sn:"22089011-1", type:"temperature" },
+    { key:"습도", sn:"22089011-2", type:"humidity" }
+  ] },
+  { id: "f3", name: "🌶️ 고추 - 무안 정중석", region: "무안", crop: "🌶️ 고추", logger: "22119596", sensors: [
+    { key:"수분1", sn:"22034568-1", type:"moisture" },
+    { key:"수분2", sn:"22062122-1", type:"moisture" },
+    { key:"일사량", sn:"21864043-1", type:"solar" },
+    { key:"온도", sn:"22034649-1", type:"temperature" },
+    { key:"습도", sn:"22034649-2", type:"humidity" }
+  ] },
+  { id: "f4", name: "🌶️ 고추 - 무안 서희종", region: "무안", crop: "🌶️ 고추", logger: "21344788", sensors: [
+    { key:"수분", sn:"22054930-1", type:"moisture" },
+    { key:"온도", sn:"21948466-1", type:"temperature" },
+    { key:"습도", sn:"21948466-2", type:"humidity" },
+    { key:"일사량", type:"solar", unavailable:true }
+  ] },
+  { id: "f5", name: "🌶️ 고추 - 무안 서희종2", region: "무안", crop: "🌶️ 고추", logger: "21344788", sensors: [
+    { key:"수분1", sn:"21955600-1", type:"moisture" },
+    { key:"수분2", sn:"21955600-2", type:"moisture" },
+    { key:"수분3", sn:"21955600-3", type:"moisture" },
+    { key:"온도", sn:"21948466-1", type:"temperature" },
+    { key:"습도", sn:"21948466-2", type:"humidity" },
+    { key:"일사량", type:"solar", unavailable:true }
+  ] },
+  { id: "f6", name: "🌶️ 고추 - 신안 조장현", region: "신안", crop: "🌶️ 고추", logger: "22119588", sensors: [
+    { key:"수분", sn:"21885618-1", type:"moisture" },
+    { key:"일사량", sn:"21987731-1", type:"solar" },
+    { key:"온도", sn:"22089016-1", type:"temperature" },
+    { key:"습도", sn:"22089016-2", type:"humidity" }
+  ] },
+  { id: "f7", name: "🌶️ 고추 - 신안 김인광", region: "신안", crop: "🌶️ 고추", logger: "22130564", sensors: [
+    { key:"수분", sn:"22071509-1", type:"moisture" },
+    { key:"일사량", sn:"21864031-1", type:"solar" },
+    { key:"온도", sn:"22071592-1", type:"temperature" },
+    { key:"습도", sn:"22071592-2", type:"humidity" }
+  ] },
+  { id: "f8", name: "🌿 대파 - 신안 김희호", region: "신안", crop: "🌿 대파", logger: "22130567", sensors: [
+    { key:"수분1", sn:"22054841-1", type:"moisture" },
+    { key:"수분2", sn:"22071508-1", type:"moisture" },
+    { key:"일사량", sn:"21864044-1", type:"solar" },
+    { key:"온도", sn:"22089017-1", type:"temperature" },
+    { key:"습도", sn:"22089017-2", type:"humidity" }
+  ] }
+];
+
+function showToast(text) {
+  const toast = $("toastMsg");
+  toast.textContent = text;
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 3000);
+}
+
+function updateRoleUI() {
+  const roleBadge = $("roleBadge");
+  const roleIcon = $("roleIcon");
+  const roleText = $("roleText");
+
+  if (currentRole === "admin") {
+    roleBadge.className = "role-badge admin";
+    roleIcon.textContent = "⚡";
+    roleText.textContent = "관리자";
+  } else if (currentRole === "guest") {
+    roleBadge.className = "role-badge guest";
+    roleIcon.textContent = "👀";
+    roleText.textContent = "게스트";
+  } else {
+    roleBadge.className = "role-badge";
+    roleIcon.textContent = "👤";
+    roleText.textContent = "서희종";
+  }
+}
+
+// 사용자 권한에 맞춘 농가 목록 및 정렬
+function getSortedFarms() {
+  if (currentRole === "user") {
+    // 서희종(5531): '서희종2' 제외
+    const seoFarms = FARMS.filter(f => f.name.includes("서희종") && !f.name.includes("서희종2"));
+    const joFarm = FARMS.filter(f => f.name.includes("조장현"));
+    const kimFarm = FARMS.filter(f => f.name.includes("김인광"));
+    const otherFarms = FARMS.filter(f => !f.name.includes("서희종") && !f.name.includes("조장현") && !f.name.includes("김인광"));
+    
+    return [...seoFarms, ...joFarm, ...kimFarm, ...otherFarms];
+  } else if (currentRole === "guest") {
+    // 게스트(7466): 전체 농가 포함
+    return [...FARMS];
+  }
+  // 관리자(9507): 전체 농가 포함
+  return [...FARMS];
+}
+
+// 가명 처리 로직
+function getDisplayName(farm, indexInActiveList) {
+  if (currentRole === "admin") {
+    return farm.name;
+  }
+
+  // 게스트(7466): 모든 농가를 완전히 가명 처리 (예: 🌶️ 고추 - 무안1)
+  if (currentRole === "guest") {
+    // 각 지역/작물별 번호 부여 계산
+    const sameCategoryFarms = activeFarms.filter(f => f.crop === farm.crop && f.region === farm.region);
+    const order = sameCategoryFarms.findIndex(f => f.id === farm.id) + 1;
+    return `${farm.crop} - ${farm.region}${order}`;
+  }
+
+  // 서희종(5531): 본인 농가만 실명 표시, 나머지는 비교/선도/평균 처리
+  if (farm.name.includes("서희종")) return farm.name;
+  if (farm.name.includes("조장현")) return "🌶️ 고추 - 신안 - 선도농가";
+  if (farm.name.includes("김인광")) return "🌶️ 고추 - 신안 - 평균농가";
+
+  const parts = farm.name.split("-");
+  if (parts.length >= 2) {
+    const crop = parts[0].trim();
+    const region = parts[1].trim().split(" ")[0];
+    return `${crop} - ${region} - 비교농가`;
+  }
+  return "비교농가";
+}
+
+const chartObjs = new Map();
+const fetchedDataStore = new Map();
+const $ = id => document.getElementById(id);
+
+function setStatus(text, state="wait"){
+  $("statusText").textContent = text;
+  $("dot").className = "dot" + (state==="ok" ? " ok" : state==="bad" ? " bad" : "");
+}
+
+function showError(msg){
+  $("errorBox").style.display="block";
+  $("errorBox").textContent=msg;
+}
+
+function clearError(){
+  $("errorBox").style.display="none";
+  $("errorBox").textContent="";
+}
+
+function utcParam(d){ return d.toISOString().slice(0,19).replace("T"," "); }
+
+function ymdKst(d){
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone:"Asia/Seoul", year:"numeric", month:"2-digit", day:"2-digit"
+  }).format(d);
+}
+
+function periodLabel(startYmd,endYmd){
+  const fmtDate = ymd => {
+    const [y,m,d] = ymd.split("-");
+    return `${Number(m)}월 ${Number(d)}일`;
+  };
+  return `${fmtDate(startYmd)} ~ ${fmtDate(endYmd)}`;
+}
+
+function getSelectedPeriod(){
+  const startYmd = $("startDate").value;
+  const endYmd = $("endDate").value;
+  if(!startYmd || !endYmd) throw new Error("시작일과 종료일을 선택하세요.");
+  if(startYmd > endYmd) throw new Error("시작일은 종료일보다 늦을 수 없습니다.");
+
+  const start = new Date(`${startYmd}T00:00:00+09:00`);
+  const end = new Date(`${endYmd}T23:59:59+09:00`);
+  return { start, end, startYmd, endYmd, label:periodLabel(startYmd,endYmd) };
+}
+
+function setDefaultDates(){
+  const now = new Date();
+  const endYmd = ymdKst(now);
+  const start = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000);
+  $("startDate").value = ymdKst(start);
+  $("endDate").value = endYmd;
+}
+
+function kst(ts){
+  if(!ts) return "—";
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone:"Asia/Seoul", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false
+  }).format(new Date(ts));
+}
+
+function kstDateOnly(ts){
+  if(!ts) return "";
+  const d = new Date(ts);
+  const month = d.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric" }).replace("월", "").trim();
+  const day = d.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul", day: "numeric" }).replace("일", "").trim();
+  return `${month}.${day}`;
+}
+
+function fmt(v,u,type="moisture"){
+  if(v===undefined || v===null || Number.isNaN(Number(v))) return "—";
+  const n = Number(v);
+  if(type === "temperature") return `${n.toFixed(1)} °C`;
+  if(type === "humidity") return `${n.toFixed(1)} %`;
+  if(type === "solar") return `${n.toFixed(1)} W/m²`;
+  if(u==="m³/m³" || (n >= 0 && n <= 1.5)) return `${n.toFixed(4)} (${(n*100).toFixed(1)}%)`;
+  if(u==="%") return n.toFixed(1)+" %";
+  return n.toFixed(4);
+}
+
+function bySensor(rows){
+  const m={};
+  for(const r of rows){ 
+    const sn = (r.sensor_sn || "").trim();
+    (m[sn] ||= []).push(r); 
+  }
+  for(const sn in m){ m[sn].sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp)); }
+  return m;
+}
+
+function latest(arr){ return arr && arr.length ? arr[arr.length-1] : null; }
+function safeId(v){ return String(v).replace(/[^a-zA-Z0-9_-]/g, "_"); }
+
+function toggleDailyDetail(idx) {
+  const panel = $("farm-" + idx + "-daily-panel");
+  const btn = $("farm-" + idx + "-toggle-btn");
+  if (!panel || !btn) return;
+
+  if (panel.style.display === "none" || panel.style.display === "") {
+    panel.style.display = "block";
+    btn.textContent = "상세 ∧";
+  } else {
+    panel.style.display = "none";
+    btn.textContent = "상세 ∨";
+  }
+}
+
+function buildFarmCards(){
+  activeFarms = getSortedFarms();
+
+  $("farmGrid").innerHTML = activeFarms.map((farm,idx)=>{
+      const displayName = getDisplayName(farm, idx);
+      const moistureSensors = farm.sensors.filter(s => (s.type || "moisture") === "moisture");
+      const moistureRows = moistureSensors.map(s=>`
+        <div class="moisture-row">
+          <span class="moisture-name">${s.key}</span>
+          <span id="farm-${idx}-sensor-${safeId(s.sn)}" class="moisture-value">—</span>
+        </div>
+      `).join("");
+
+      return `
+        <article class="farm-card">
+          <div class="farm-head">
+            <div>
+              <div class="farm-title-group">
+                <div class="farm-name">${displayName}</div>
+                <button id="farm-${idx}-toggle-btn" class="detail-toggle-btn" onclick="toggleDailyDetail(${idx})">상세 ∨</button>
+              </div>
+              <div class="farm-meta">Logger ${farm.logger}</div>
+            </div>
+            <div id="farm-${idx}-last" class="farm-last">마지막 측정 —</div>
+          </div>
+
+          <div id="farm-${idx}-daily-panel" class="daily-avg-panel">
+            <div class="daily-avg-title">📊 지정 기간 일일 평균 토양수분</div>
+            <div id="farm-${idx}-daily-list" class="daily-avg-grid"></div>
+          </div>
+
+          <div class="values">
+            <div class="value-card moisture-card">
+              <div class="value-head">
+                <div class="value-label">토양수분</div>
+                <div class="metric-icon">💧</div>
+              </div>
+              <div class="moisture-list">
+                ${moistureRows || '<div class="value metric-empty">—</div>'}
+              </div>
+              <div id="farm-${idx}-moisture-time" class="value-time">최신 측정 —</div>
+              <div id="farm-${idx}-stats" class="period-stats">
+                <span>최저: <b>—</b></span>
+                <span>평균: <b>—</b></span>
+                <span>최고: <b>—</b></span>
+              </div>
+            </div>
+            <div class="value-card">
+              <div class="value-head">
+                <div class="value-label">온도</div>
+                <div class="metric-icon">🌡️</div>
+              </div>
+              <div id="farm-${idx}-temperature" class="value">—</div>
+              <div id="farm-${idx}-temperature-time" class="value-time">센서 미등록</div>
+            </div>
+            <div class="value-card">
+              <div class="value-head">
+                <div class="value-label">습도</div>
+                <div class="metric-icon">💦</div>
+              </div>
+              <div id="farm-${idx}-humidity" class="value">—</div>
+              <div id="farm-${idx}-humidity-time" class="value-time">센서 미등록</div>
+            </div>
+            <div class="value-card">
+              <div class="value-head">
+                <div class="value-label">일사량</div>
+                <div class="metric-icon">☀️</div>
+              </div>
+              <div id="farm-${idx}-solar" class="value">—</div>
+              <div id="farm-${idx}-solar-time" class="value-time">센서 미등록</div>
+            </div>
+          </div>
+          <div class="chartbox">
+            <div id="farm-${idx}-chart-title" class="chart-title">수분 추이</div>
+            <canvas id="farm-chart-${idx}"></canvas>
+          </div>
+        </article>
+      `;
+    }).join("");
+
+  $("farmCheckboxList").innerHTML = activeFarms.map((farm, idx) => {
+    const displayName = getDisplayName(farm, idx);
+    return `
+      <label class="checkbox-label">
+        <input type="checkbox" class="farm-check" value="${idx}" checked />
+        ${displayName}
+      </label>
+    `;
+  }).join("");
+}
+
+function renderFarm(idx,farm,rows,period){
+  fetchedDataStore.set(idx, rows);
+  const m = bySensor(rows);
+  const moistureSensors = farm.sensors.filter(s => (s.type || "moisture") === "moisture");
+  const metricSensor = type => farm.sensors.find(s => s.type === type);
+
+  let latestMoistureTs = null;
+  const allMoistureVals = [];
+  const dailyMoistureMap = new Map();
+
+  moistureSensors.forEach(s=>{
+    const sn = (s.sn || "").trim();
+    const sensorRows = m[sn] || [];
+    const r = latest(sensorRows);
+    
+    sensorRows.forEach(row => {
+      const val = Number(row.value);
+      if (!Number.isNaN(val)) {
+        allMoistureVals.push(val);
+        const dateStr = ymdKst(new Date(row.timestamp));
+        if (!dailyMoistureMap.has(dateStr)) {
+          dailyMoistureMap.set(dateStr, []);
+        }
+        dailyMoistureMap.get(dateStr).push(val);
+      }
+    });
+
+    const el = $("farm-"+idx+"-sensor-"+safeId(s.sn));
+    if(el){ el.textContent = r ? fmt(r.value,r.unit,"moisture") : "—"; }
+    if(r?.timestamp && (!latestMoistureTs || new Date(r.timestamp) > new Date(latestMoistureTs))){
+      latestMoistureTs = r.timestamp;
+    }
+  });
+
+  const dailyListEl = $("farm-" + idx + "-daily-list");
+  if (dailyListEl) {
+    if (dailyMoistureMap.size > 0) {
+      const sortedDates = Array.from(dailyMoistureMap.keys()).sort();
+      dailyListEl.innerHTML = sortedDates.map(dateStr => {
+        const vals = dailyMoistureMap.get(dateStr);
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const [, m, d] = dateStr.split('-');
+        const formattedDate = `${Number(m)}월 ${Number(d)}일`;
+        
+        return `
+          <div class="daily-avg-item">
+            <span class="daily-avg-date">${formattedDate}</span>
+            <span class="daily-avg-val">${avg.toFixed(4)} <span style="font-size:10px; font-weight:normal; color:#64748b;">(${(avg * 100).toFixed(1)}%)</span></span>
+          </div>
+        `;
+      }).join("");
+    } else {
+      dailyListEl.innerHTML = `<div style="grid-column: 1/-1; color:var(--text-sub); font-size:12px;">선택한 기간의 수분 데이터가 없습니다.</div>`;
+    }
+  }
+
+  const statsEl = $("farm-"+idx+"-stats");
+  if (statsEl) {
+    if (allMoistureVals.length > 0) {
+      const minVal = Math.min(...allMoistureVals);
+      const maxVal = Math.max(...allMoistureVals);
+      const avgVal = allMoistureVals.reduce((a, b) => a + b, 0) / allMoistureVals.length;
+
+      statsEl.innerHTML = `
+        <span>최저: <b>${(minVal * 100).toFixed(1)}%</b></span>
+        <span>평균: <b>${(avgVal * 100).toFixed(1)}%</b></span>
+        <span>최고: <b>${(maxVal * 100).toFixed(1)}%</b></span>
+      `;
+    } else {
+      statsEl.innerHTML = `<span>최저: <b>—</b></span><span>평균: <b>—</b></span><span>최고: <b>—</b></span>`;
+    }
+  }
+
+  $("farm-"+idx+"-moisture-time").textContent = latestMoistureTs ? `최신 ${kst(latestMoistureTs)}` : "최신 측정 —";
+
+  ["temperature","humidity","solar"].forEach(type=>{
+    const sensor = metricSensor(type);
+    const valueEl = $("farm-"+idx+"-"+type);
+    const timeEl = $("farm-"+idx+"-"+type+"-time");
+
+    if(!sensor){ valueEl.textContent = "—"; timeEl.textContent = "센서 미등록"; return; }
+    if(sensor.unavailable){ valueEl.textContent = "측정X"; timeEl.textContent = "일사량 센서 없음"; return; }
+
+    const sn = (sensor.sn || "").trim();
+    const r = latest(m[sn]);
+    valueEl.textContent = r ? fmt(r.value,r.unit,type) : "—";
+    timeEl.textContent = r ? `${kst(r.timestamp)}` : sensor.sn;
+  });
+
+  const timestamps = rows.map(r=>r.timestamp).filter(Boolean).sort();
+  $("farm-"+idx+"-last").textContent = timestamps.length ? `마지막 측정 ${kst(timestamps.at(-1))}` : "데이터 없음";
+  $("farm-"+idx+"-chart-title").textContent = `${period.label} 토양수분 추이`;
+
+  if(chartObjs.has(idx)){ chartObjs.get(idx).destroy(); }
+
+  const datasets = farm.sensors
+    .filter(s => (s.type || "moisture") === "moisture")
+    .map(s=>{
+      const sn = (s.sn || "").trim();
+      return {
+        label:s.key,
+        data: (m[sn] || []).map(r=>({ x:new Date(r.timestamp), y:Number(r.value) })),
+        tension:.2, pointRadius:0, pointHoverRadius:4, borderWidth:2
+      };
+    })
+    .filter(ds=>ds.data.length);
+
+  const chart = new Chart($("farm-chart-"+idx), {
+    type:"line",
+    data:{ datasets },
+    options:{
+      responsive:true, 
+      maintainAspectRatio:false, 
+      animation:false,
+      layout: {
+        padding: { left: 0, right: 10, top: 0, bottom: 0 }
+      },
+      interaction:{ mode:"nearest", intersect:false },
+      plugins:{
+        legend:{ position:"bottom", labels:{ boxWidth:8, usePointStyle:true } },
+        tooltip:{
+          backgroundColor:"#0f172a", padding:10, cornerRadius:8,
+          callbacks:{
+            title: items => items?.length ? kst(items[0].parsed.x) : "",
+            label: ctx=> `${ctx.dataset.label}: ${Number(ctx.parsed.y).toFixed(4)} (${(Number(ctx.parsed.y)*100).toFixed(1)}%)`
+          }
+        }
+      },
+      scales:{
+        x:{ 
+          type:"linear",
+          min: period.start.getTime(),
+          max: period.end.getTime(),
+          ticks:{ 
+            color:"#94a3b8", 
+            font: { size: 10 },
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 6,
+            callback: v => kstDateOnly(new Date(v))
+          }, 
+          grid:{ color:"#f1f5f9" } 
+        },
+        y:{
+          min:0.10, max:0.50,
+          afterBuildTicks: axis=>{ axis.ticks = [0.10, 0.20, 0.30, 0.40, 0.50].map(value=>({value})); },
+          ticks:{ color:"#94a3b8", font: { size: 10 }, autoSkip:false, callback: v => `${(Number(v)*100).toFixed(0)}%` },
+          grid:{ color:"#f1f5f9" },
+          title:{ display:true, text:"수분 (%)", color:"#94a3b8", font: { size: 11 } }
+        }
+      }
+    },
+    plugins:[{
+      id:"moistureGuide",
+      beforeDatasetsDraw(chart){
+        const { ctx, chartArea:{left,right}, scales:{y} } = chart;
+        const y20 = y.getPixelForValue(0.20);
+        const y30 = y.getPixelForValue(0.30);
+        ctx.save();
+        ctx.fillStyle = "rgba(239, 68, 68, 0.06)";
+        ctx.fillRect(left, y30, right-left, y20-y30);
+        ctx.strokeStyle = "rgba(239, 68, 68, 0.3)";
+        ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+        [0.20, 0.30].forEach(v=>{
+          const py = y.getPixelForValue(v);
+          ctx.beginPath(); ctx.moveTo(left, py); ctx.lineTo(right, py); ctx.stroke();
+        });
+        ctx.restore();
+      }
+    }]
+  });
+
+  chartObjs.set(idx, chart);
+}
+
+function exportFilteredCSV() {
+  if (fetchedDataStore.size === 0) {
+    alert("다운로드할 데이터가 없습니다. 먼저 [기간 적용]을 눌러 데이터를 조회하세요.");
+    return;
+  }
+
+  const selectedFarmIndices = Array.from(document.querySelectorAll('.farm-check:checked')).map(cb => Number(cb.value));
+  const selectedTypes = Array.from(document.querySelectorAll('.type-check:checked')).map(cb => cb.value);
+
+  if (selectedFarmIndices.length === 0) {
+    alert("최소 하나 이상의 농가를 선택하세요.");
+    return;
+  }
+  if (selectedTypes.length === 0) {
+    alert("최소 하나 이상의 다운로드 항목을 선택하세요.");
+    return;
+  }
+
+  const csvRows = [];
+  csvRows.push(["농가명", "로거ID", "측정시간(KST)", "센서명", "센서S/N", "측정항목", "측정값", "단위"].join(","));
+
+  selectedFarmIndices.forEach(idx => {
+    const farm = activeFarms[idx];
+    const displayName = getDisplayName(farm, idx);
+    const rows = fetchedDataStore.get(idx) || [];
+    
+    const sensorMap = new Map();
+    farm.sensors.forEach(s => {
+      if (s.sn) sensorMap.set(s.sn.trim(), s);
+    });
+
+    rows.forEach(r => {
+      const rawSn = (r.sensor_sn || "").trim();
+      const sensorInfo = sensorMap.get(rawSn);
+      const sensorType = sensorInfo ? sensorInfo.type : "other";
+
+      if (selectedTypes.includes(sensorType)) {
+        const farmName = `"${displayName.replace(/"/g, '""')}"`;
+        const sensorName = `"${((sensorInfo && sensorInfo.key) || '기타/상태').replace(/"/g, '""')}"`;
+        const timestamp = `"${kst(r.timestamp)}"`;
+        const val = r.value !== undefined && r.value !== null ? r.value : "";
+        const unit = `"${r.unit || ''}"`;
+
+        csvRows.push([farmName, farm.logger, timestamp, sensorName, rawSn, sensorType, val, unit].join(","));
+      }
+    });
+  });
+
+  if (csvRows.length <= 1) {
+    alert("선택하신 조건에 해당하는 데이터가 존재하지 않습니다.");
+    return;
+  }
+
+  const csvContent = "\uFEFF" + csvRows.join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  
+  const startYmd = $("startDate").value;
+  const endYmd = $("endDate").value;
+  const fileName = `맞춤_수분데이터_${startYmd}_~_${endYmd}.csv`;
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  toggleModal(false);
+}
+
+async function fetchFarm(farm, token, start, end){
+  const params = new URLSearchParams({ loggers:farm.logger, start_date_time: utcParam(start), end_date_time: utcParam(end) });
+  const res = await fetch(`${API}?${params.toString()}`, {
+    method:"GET", headers:{ Authorization: `Bearer ${token}`, Accept: "application/json" }, cache:"no-store"
+  });
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error(`${farm.name}: JSON이 아닌 응답`); }
+  if(!res.ok) throw new Error(`${farm.name}: HTTP ${res.status}`);
+  if(!Array.isArray(data.data)) throw new Error(`${farm.name}: data 배열 없음`);
+  return data.data;
+}
+
+async function loadAll(){
+  clearError();
+  let period;
+  try { period = getSelectedPeriod(); } catch(err) { showError(err.message); return; }
+
+  setStatus(`${activeFarms.length}농가 데이터 조회 중...`);
+  $("subtitle").textContent = `@APD : SANGWOOK PARK · ${period.label}`;
+
+  const results = await Promise.allSettled(activeFarms.map(f => fetchFarm(f, API_TOKEN, period.start, period.end)));
+  const errors=[];
+  let okCount=0;
+
+  results.forEach((result,idx)=>{
+    if(result.status === "fulfilled"){ renderFarm(idx, activeFarms[idx], result.value, period); okCount++; }
+    else { errors.push(result.reason?.message || `${activeFarms[idx].name}: 불러오기 실패`); renderFarm(idx, activeFarms[idx], [], period); }
+  });
+
+  if(errors.length) showError(errors.join("\n"));
+  if(okCount === activeFarms.length) setStatus(`정상 · ${okCount}농가`, "ok");
+  else if(okCount > 0) setStatus(`${okCount}/${activeFarms.length}농가 갱신`, "wait");
+  else setStatus("연결 실패", "bad");
+}
+
+function toggleModal(show) {
+  $("downloadModal").style.display = show ? "flex" : "none";
+}
+
+// --- AUTH LOGIC ---
+function checkAuth() {
+  const savedKey = localStorage.getItem("moisture_auth_key");
+  if (savedKey && AUTH_KEYS[savedKey]) {
+    currentRole = AUTH_KEYS[savedKey].role;
+    $("authOverlay").style.display = "none";
+    initApp();
+  } else {
+    $("authOverlay").style.display = "flex";
+  }
+}
+
+function handleAuthSubmit() {
+  const inputKey = $("authInput").value.trim();
+  if (AUTH_KEYS[inputKey]) {
+    localStorage.setItem("moisture_auth_key", inputKey);
+    currentRole = AUTH_KEYS[inputKey].role;
+    const authInfo = AUTH_KEYS[inputKey];
+    
+    $("authOverlay").style.display = "none";
+    $("authError").style.display = "none";
+    
+    initApp();
+    showToast(`${authInfo.name}님 환영합니다.`);
+  } else {
+    $("authError").style.display = "block";
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem("moisture_auth_key");
+  location.reload();
+}
+
+function initApp() {
+  updateRoleUI();
+  buildFarmCards();
+  setDefaultDates();
+  loadAll();
+}
+
+// Event Listeners
+$("authBtn").addEventListener("click", handleAuthSubmit);
+$("authInput").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") handleAuthSubmit();
+});
+$("logoutBtn").addEventListener("click", handleLogout);
+
+$("loadBtn").addEventListener("click", loadAll);
+$("openModalBtn").addEventListener("click", () => toggleModal(true));
+$("closeModalBtn").addEventListener("click", () => toggleModal(false));
+$("cancelModalBtn").addEventListener("click", () => toggleModal(false));
+$("execDownloadBtn").addEventListener("click", exportFilteredCSV);
+
+$("selectAllFarms").addEventListener("change", (e) => {
+  document.querySelectorAll('.farm-check').forEach(cb => cb.checked = e.target.checked);
+});
+
+// App Start
+checkAuth();
+
+// 5분마다 자동 갱신
+setInterval(() => {
+  if (currentRole) loadAll();
+}, 5 * 60 * 1000);
+</script>
+</body>
+</html>
