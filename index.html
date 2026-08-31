@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="ko">
 <head>
@@ -6,9 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Moisture Monitoring Process</title>
   <meta name="theme-color" content="#f1f5f9" />
-  
+
   <!-- Vercel Analytics 트래픽 수집 스크립트 -->
-  <script defer src="/_vercel/insights/script.js"></script>
+  <script defer src="https://sanguk.vercel.app/_vercel/insights/script.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
@@ -925,10 +924,10 @@ function getSortedFarms() {
     const joFarm = FARMS.filter(f => f.name.includes("조장현"));
     const kimFarm = FARMS.filter(f => f.name.includes("김인광"));
     const otherFarms = FARMS.filter(f => !f.name.includes("서희종") && !f.name.includes("조장현") && !f.name.includes("김인광"));
-    
+
     return [...seoFarms, ...joFarm, ...kimFarm, ...otherFarms];
   } else if (currentRole === "guest") {
-    return [...FARMS];
+    return FARMS.filter(f => f.id !== "f5");
   }
   return [...FARMS];
 }
@@ -939,9 +938,16 @@ function getDisplayName(farm, indexInActiveList) {
   }
 
   if (currentRole === "guest") {
-    const sameCategoryFarms = activeFarms.filter(f => f.crop === farm.crop && f.region === farm.region);
-    const order = sameCategoryFarms.findIndex(f => f.id === farm.id) + 1;
-    return `${farm.crop} - ${farm.region}${order}`;
+    const guestDisplayNames = {
+      f1: "🌶️ 고추 - 영암K",
+      f2: "🌶️ 고추 - 몽탄J",
+      f3: "🌶️ 고추 - 청계J",
+      f4: "🌶️ 고추 - 청계S",
+      f6: "🌶️ 고추 - 압해J",
+      f7: "🌶️ 고추 - 압해K",
+      f8: "🌿 대파 - 임자K"
+    };
+    return guestDisplayNames[farm.id] || farm.name;
   }
 
   if (farm.name.includes("서희종")) return farm.name;
@@ -1039,9 +1045,9 @@ function fmt(v,u,type="moisture"){
 
 function bySensor(rows){
   const m={};
-  for(const r of rows){ 
+  for(const r of rows){
     const sn = (r.sensor_sn || "").trim();
-    (m[sn] ||= []).push(r); 
+    (m[sn] ||= []).push(r);
   }
   for(const sn in m){ m[sn].sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp)); }
   return m;
@@ -1175,7 +1181,7 @@ function renderFarm(idx,farm,rows,period){
     const sn = (s.sn || "").trim();
     const sensorRows = m[sn] || [];
     const r = latest(sensorRows);
-    
+
     sensorRows.forEach(row => {
       const val = Number(row.value);
       if (!Number.isNaN(val)) {
@@ -1214,7 +1220,7 @@ function renderFarm(idx,farm,rows,period){
         const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
         const [, m, d] = dateStr.split('-');
         const formattedDate = `${Number(m)}월 ${Number(d)}일`;
-        
+
         return `
           <div class="daily-avg-item">
             <span class="daily-avg-date">${formattedDate}</span>
@@ -1282,8 +1288,8 @@ function renderFarm(idx,farm,rows,period){
     type:"line",
     data:{ datasets },
     options:{
-      responsive:true, 
-      maintainAspectRatio:false, 
+      responsive:true,
+      maintainAspectRatio:false,
       animation:false,
       layout: {
         padding: { left: 0, right: 10, top: 0, bottom: 0 }
@@ -1300,19 +1306,19 @@ function renderFarm(idx,farm,rows,period){
         }
       },
       scales:{
-        x:{ 
+        x:{
           type:"linear",
           min: period.start.getTime(),
           max: period.end.getTime(),
-          ticks:{ 
-            color:"#94a3b8", 
+          ticks:{
+            color:"#94a3b8",
             font: { size: 10 },
             maxRotation: 0,
             autoSkip: true,
             maxTicksLimit: 6,
             callback: v => kstDateOnly(new Date(v))
-          }, 
-          grid:{ color:"#f1f5f9" } 
+          },
+          grid:{ color:"#f1f5f9" }
         },
         y:{
           min:0.10, max:0.50,
@@ -1371,7 +1377,7 @@ function exportFilteredCSV() {
     const farm = activeFarms[idx];
     const displayName = getDisplayName(farm, idx);
     const rows = fetchedDataStore.get(idx) || [];
-    
+
     const sensorMap = new Map();
     farm.sensors.forEach(s => {
       if (s.sn) sensorMap.set(s.sn.trim(), s);
@@ -1402,7 +1408,7 @@ function exportFilteredCSV() {
   const csvContent = "\uFEFF" + csvRows.join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-  
+
   const startYmd = $("startDate").value;
   const endYmd = $("endDate").value;
   const fileName = `맞춤_수분데이터_${startYmd}_~_${endYmd}.csv`;
@@ -1475,10 +1481,10 @@ function handleAuthSubmit() {
     localStorage.setItem("moisture_auth_key", inputKey);
     currentRole = AUTH_KEYS[inputKey].role;
     const authInfo = AUTH_KEYS[inputKey];
-    
+
     $("authOverlay").style.display = "none";
     $("authError").style.display = "none";
-    
+
     initApp();
     showToast(`${authInfo.name}님 환영합니다.`);
   } else {
