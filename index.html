@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ko">
 <head>
@@ -810,10 +811,10 @@
 const API = "https://api.licor.cloud/v1/data";
 const API_TOKEN = "2sjkSV0WDr6cy8CNnwl0UaeqtEMaF8x7GnaYLUQcb99eG75r";
 
-// 권한 정의 (관리자: 9507, 서희종: 5531, 게스트: 7466)
+// 권한 정의 (관리자: 9507, 서명철: 5531, 게스트: 7466)
 const AUTH_KEYS = {
   "9507": { role: "admin", name: "관리자" },
-  "5531": { role: "user", name: "서희종" },
+  "5531": { role: "user", name: "서명철" },
   "7466": { role: "guest", name: "게스트" }
 };
 
@@ -821,13 +822,13 @@ let currentRole = null;
 let activeFarms = [];
 
 const FARMS = [
-  { id: "f1", name: "🌶️ 고추 - 영암 김명옥", region: "영암", crop: "🌶️ 고추", logger: "22125015", sensors: [
+  { id: "f1", name: "🥬 배추 - 무안 박세권", region: "무안", crop: "🥬 배추", logger: "22125015", sensors: [
     { key:"수분", sn:"22054837-1", type:"moisture" },
     { key:"일사량", sn:"21864023-1", type:"solar" },
     { key:"온도", sn:"22034650-1", type:"temperature" },
     { key:"습도", sn:"22034650-2", type:"humidity" }
   ] },
-  { id: "f2", name: "🌶️ 고추 - 무안 박상길", region: "무안", crop: "🌶️ 고추", logger: "22130569", sensors: [
+  { id: "f2", name: "🥬 배추 - 무안 최윤흥", region: "무안", crop: "🥬 배추", logger: "22130569", sensors: [
     { key:"수분", sn:"22011531-1", type:"moisture" },
     { key:"일사량", sn:"21864022-1", type:"solar" },
     { key:"온도", sn:"22089011-1", type:"temperature" },
@@ -840,13 +841,13 @@ const FARMS = [
     { key:"온도", sn:"22034649-1", type:"temperature" },
     { key:"습도", sn:"22034649-2", type:"humidity" }
   ] },
-  { id: "f4", name: "🌶️ 고추 - 무안 서희종", region: "무안", crop: "🌶️ 고추", logger: "21344788", sensors: [
+  { id: "f4", name: "🥬 배추 - 무안 서명철", region: "무안", crop: "🌶️ 고추", logger: "21344788", sensors: [
     { key:"수분", sn:"22054930-1", type:"moisture" },
     { key:"온도", sn:"21948466-1", type:"temperature" },
     { key:"습도", sn:"21948466-2", type:"humidity" },
     { key:"일사량", type:"solar", unavailable:true }
   ] },
-  { id: "f5", name: "🌶️ 고추 - 무안 서희종2", region: "무안", crop: "🌶️ 고추", logger: "21344788", sensors: [
+  { id: "f5", name: "🥬 배추 - 무안 서명철2", region: "무안", crop: "🌶️ 고추", logger: "21344788", sensors: [
     { key:"수분1", sn:"21955600-1", type:"moisture" },
     { key:"수분2", sn:"21955600-2", type:"moisture" },
     { key:"수분3", sn:"21955600-3", type:"moisture" },
@@ -914,16 +915,16 @@ function updateRoleUI() {
   } else {
     roleBadge.className = "role-badge";
     roleIcon.textContent = "👤";
-    roleText.textContent = "서희종";
+    roleText.textContent = "서명철";
   }
 }
 
 function getSortedFarms() {
   if (currentRole === "user") {
-    const seoFarms = FARMS.filter(f => f.name.includes("서희종") && !f.name.includes("서희종2"));
+    const seoFarms = FARMS.filter(f => f.name.includes("서명철") && !f.name.includes("서명철2"));
     const joFarm = FARMS.filter(f => f.name.includes("조장현"));
     const kimFarm = FARMS.filter(f => f.name.includes("김인광"));
-    const otherFarms = FARMS.filter(f => !f.name.includes("서희종") && !f.name.includes("조장현") && !f.name.includes("김인광"));
+    const otherFarms = FARMS.filter(f => !f.name.includes("서명철") && !f.name.includes("조장현") && !f.name.includes("김인광"));
 
     return [...seoFarms, ...joFarm, ...kimFarm, ...otherFarms];
   } else if (currentRole === "guest") {
@@ -939,20 +940,20 @@ function getDisplayName(farm, indexInActiveList) {
 
   if (currentRole === "guest") {
     const guestDisplayNames = {
-      f1: "🌶️ 고추 - 영암K",
-      f2: "🌶️ 고추 - 몽탄J",
-      f3: "🌶️ 고추 - 청계J",
-      f4: "🌶️ 고추 - 청계S",
-      f6: "🌶️ 고추 - 압해J",
-      f7: "🌶️ 고추 - 압해K",
-      f8: "🌿 대파 - 임자K"
+      f1: "🥬 배추 - 무안 - P",
+      f2: "🥬 배추 - 무안 - C",
+      f3: "🌶️ 고추 - 무안 - J",
+      f4: "🥬 배추 - 무안 - S",
+      f6: "🌶️ 고추 - 신안 - J",
+      f7: "🌶️ 고추 - 신안 - K",
+      f8: "🌿 대파 - 신안 - K"
     };
     return guestDisplayNames[farm.id] || farm.name;
   }
 
-  if (farm.name.includes("서희종")) return farm.name;
-  if (farm.name.includes("조장현")) return "🌶️ 고추 - 신안 - 선도농가";
-  if (farm.name.includes("김인광")) return "🌶️ 고추 - 신안 - 평균농가";
+  if (farm.name.includes("서명철")) return farm.name;
+  if (farm.name.includes("조장현")) return "🥬 배추 - 신안 - 선도농가";
+  if (farm.name.includes("김인광")) return "🥬 배추 - 신안 - 평균농가";
 
   const parts = farm.name.split("-");
   if (parts.length >= 2) {
